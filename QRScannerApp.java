@@ -1,6 +1,8 @@
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
+import java.awt.Toolkit;
 import java.awt.event.*;
 
 public class QRScannerApp extends JFrame {
@@ -8,6 +10,7 @@ public class QRScannerApp extends JFrame {
     private JTextField qrInput;
     private JTextArea outputArea;
     private JLabel statusLabel;
+    private String lastScannedCode = "";
 
     public QRScannerApp() {
 
@@ -23,18 +26,21 @@ public class QRScannerApp extends JFrame {
                 SwingConstants.CENTER
         );
         titleLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 10, 10, 10));
+        titleLabel.setBorder(
+                BorderFactory.createEmptyBorder(15, 10, 10, 10)
+        );
 
         add(titleLabel, BorderLayout.NORTH);
 
         // Main panel
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        mainPanel.setBorder(
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        );
 
         // QR input field
         qrInput = new JTextField();
         qrInput.setFont(new Font("Arial", Font.PLAIN, 18));
-
         qrInput.addActionListener(e -> processQRCode());
 
         mainPanel.add(new JLabel("Scan QR Code:"), BorderLayout.NORTH);
@@ -42,21 +48,25 @@ public class QRScannerApp extends JFrame {
 
         // Buttons
         JButton scanButton = new JButton("Submit");
+        JButton copyButton = new JButton("Copy Last Code");
         JButton clearButton = new JButton("Clear");
 
         scanButton.addActionListener(e -> processQRCode());
 
+        copyButton.addActionListener(e -> copyLastCode());
+
         clearButton.addActionListener(e -> {
             qrInput.setText("");
-            qrInput.requestFocusInWindow();
             statusLabel.setText("Ready to scan");
+            qrInput.requestFocusInWindow();
         });
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(scanButton);
+        buttonPanel.add(copyButton);
         buttonPanel.add(clearButton);
 
-        // Output area
+        // Scanned codes history
         outputArea = new JTextArea();
         outputArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         outputArea.setEditable(false);
@@ -77,7 +87,7 @@ public class QRScannerApp extends JFrame {
 
         add(mainPanel, BorderLayout.CENTER);
 
-        // Automatically focus the scanner input
+        // Focus scanner input when the application opens
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -96,12 +106,41 @@ public class QRScannerApp extends JFrame {
             return;
         }
 
+        lastScannedCode = qrData;
+
         outputArea.append(qrData + "\n");
 
         statusLabel.setText("Successfully scanned: " + qrData);
 
         qrInput.setText("");
         qrInput.requestFocusInWindow();
+    }
+
+    private void copyLastCode() {
+
+        if (lastScannedCode.isEmpty()) {
+            statusLabel.setText("No scanned code available to copy.");
+            qrInput.requestFocusInWindow();
+            return;
+        }
+
+        try {
+            StringSelection selection =
+                    new StringSelection(lastScannedCode);
+
+            Toolkit.getDefaultToolkit()
+                    .getSystemClipboard()
+                    .setContents(selection, null);
+
+            statusLabel.setText(
+                    "Copied to clipboard: " + lastScannedCode
+            );
+
+            qrInput.requestFocusInWindow();
+
+        } catch (Exception e) {
+            statusLabel.setText("Unable to copy code to clipboard.");
+        }
     }
 
     public static void main(String[] args) {
